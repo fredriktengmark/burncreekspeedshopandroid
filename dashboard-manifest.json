@@ -1,0 +1,22 @@
+{
+  "name": "Burn Creek Speedshop TV",
+  "short_name": "Burn Creek TV",
+  "description": "Garage-dashboard för Burn Creek Speedshop",
+  "start_url": "./index.html",
+  "display": "fullscreen",
+  "orientation": "landscape",
+  "background_color": "#0a0a0a",
+  "theme_color": "#0a0a0a",
+  "icons": [
+    {
+      "src": "./burn_creek_speedshop_rund_est.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./burn_creek_speedshop_rund_est.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
