@@ -58,11 +58,11 @@
     body {
       background-color: #0d0c0b;
       background-image: 
-        radial-gradient(circle at 50% 0%, rgba(178, 83, 41, 0.25), transparent 65%),
+        radial-gradient(circle at 50% 50%, rgba(178, 83, 41, 0.25), transparent 70%),
         url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cdefs%3E%3Cg id='lug'%3E%3Cellipse cx='0' cy='0.8' rx='5.2' ry='1.9' fill='%23040404'/%3E%3Cellipse cx='0' cy='-0.3' rx='5' ry='1.7' fill='%232e2c2a'/%3E%3Cellipse cx='0' cy='0' rx='4.6' ry='1.4' fill='%231d1b1a'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23lug' transform='translate(9 9) rotate(-45)'/%3E%3Cuse href='%23lug' transform='translate(27 9) rotate(45)'/%3E%3Cuse href='%23lug' transform='translate(9 27) rotate(45)'/%3E%3Cuse href='%23lug' transform='translate(27 27) rotate(-45)'/%3E%3C/svg%3E");
       color: #f4ecd8;
       user-select: none;
-      overflow-x: hidden;
+      overflow: hidden;
     }
 
     .checkered-strip {
@@ -77,8 +77,8 @@
     }
 
     .led {
-      width: 10px;
-      height: 10px;
+      width: 9px;
+      height: 9px;
       border-radius: 50%;
       background: #3f3933;
       border: 1px solid #25211d;
@@ -90,58 +90,63 @@
     }
   </style>
 </head>
-<body class="font-oswald flex flex-col justify-center items-center p-2">
+<body class="font-oswald flex items-center justify-center p-5">
 
-  <!-- CENTRERAD HUVUDCONTAINER -->
-  <div class="w-full max-w-md h-full flex flex-col justify-between gap-2">
+  <!-- INDRAGEN & CENTRERAD KORT-CONTAINER (84% bredd, max 300px) -->
+  <div class="w-[84%] max-w-[300px] bg-bcs-black/90 border-2 border-bcs-border rounded-2xl p-3 shadow-2xl flex flex-col items-center justify-center gap-2 relative overflow-hidden">
+    <div class="checkered-strip h-1.5 w-full absolute top-0 left-0 opacity-85"></div>
 
-    <!-- TOPP: SYMMETRISK & CENTRERAD HEADER -->
-    <header class="bg-bcs-charcoal border border-bcs-border rounded-xl px-3 py-2 relative overflow-hidden grid grid-cols-3 items-center shadow-lg flex-shrink-0">
-      <div class="checkered-strip h-1.5 w-full absolute top-0 left-0 opacity-85"></div>
-      
-      <!-- Vänster: Uppdatera-knapp -->
-      <div class="flex justify-start mt-1">
-        <button onclick="window.location.reload()" class="px-2.5 py-1.5 rounded-lg bg-bcs-black border border-bcs-border text-bcs-cream active:scale-95 flex items-center gap-1 shadow" title="Uppdatera">
+    <!-- TOPP: LOGGA, TITEL & CENTRERADE KNAPPAR -->
+    <header class="w-full flex flex-col items-center justify-center text-center pt-1 pb-1.5 border-b border-bcs-border">
+      <div class="flex items-center justify-center gap-3 w-full">
+        <!-- Vänster knapp (indragen mot mitten) -->
+        <button onclick="window.location.reload()" class="px-2 py-1 rounded-lg bg-bcs-charcoal border border-bcs-border text-bcs-cream active:scale-95 flex items-center gap-1 shadow" title="Uppdatera">
           <i class="ph-bold ph-arrows-clockwise text-xs text-bcs-gold"></i>
-          <span class="font-mono text-[9px] uppercase text-bcs-creamMuted">Sync</span>
+          <span class="font-mono text-[8px] uppercase text-bcs-creamMuted">Sync</span>
         </button>
-      </div>
 
-      <!-- Mitten: Centrerad Logga & Titel -->
-      <a href="./index.html" class="flex flex-col items-center justify-center text-center mt-1">
-        <img src="./logo.png" alt="Logo" class="w-10 h-10 rounded-full border-2 border-bcs-copper bg-bcs-black object-contain shadow-md mb-0.5">
-        <div class="font-brand text-xs text-bcs-cream uppercase leading-none tracking-wide whitespace-nowrap">
-          Burn Creek <span class="text-bcs-copper">HQ</span>
-        </div>
-        <div id="widgetTime" class="font-mono text-[9px] text-bcs-gold leading-tight mt-0.5">
-          Uppdaterar...
-        </div>
-      </a>
+        <!-- Logga i mitten -->
+        <a href="./index.html" class="flex flex-col items-center">
+          <img src="./logo.png" alt="Logo" class="w-11 h-11 rounded-full border-2 border-bcs-copper bg-bcs-black object-contain shadow-md">
+        </a>
 
-      <!-- Höger: Öppna TV-dashboard -->
-      <div class="flex justify-end mt-1">
-        <a href="./index.html" class="px-2.5 py-1.5 rounded-lg bg-bcs-copper text-white font-oswald text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 shadow active:scale-95">
+        <!-- Höger knapp (indragen mot mitten) -->
+        <a href="./index.html" class="px-2 py-1 rounded-lg bg-bcs-copper text-white font-oswald text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 shadow active:scale-95">
           <span>TV</span>
           <i class="ph-bold ph-arrow-square-out text-xs"></i>
         </a>
       </div>
+
+      <div class="font-brand text-xs text-bcs-cream uppercase leading-none tracking-wide mt-1.5">
+        Burn Creek <span class="text-bcs-copper">HQ</span>
+      </div>
+      <div id="widgetTime" class="font-mono text-[8px] text-bcs-gold leading-tight mt-0.5">
+        Uppdaterar...
+      </div>
     </header>
 
-    <!-- ANSLAG / MEDDELANDE FRÅN DEPÅN (Centrerat, döljs om tomt) -->
-    <div id="widgetAnnouncement" class="hidden bg-gradient-to-b from-[#24140d] to-[#150d08] border border-bcs-copper rounded-xl px-3 py-2 text-center shadow flex-shrink-0">
-      <div class="flex items-center justify-center gap-1.5 text-[9px] font-mono text-bcs-gold border-b border-bcs-copper/30 pb-1 mb-1">
-        <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
-        <span class="font-bold uppercase">Depå-meddelande</span>
+    <!-- ANSLAG / MEDDELANDE FRÅN DEPÅN (Döljs om tomt) -->
+    <div id="widgetAnnouncement" class="hidden w-full bg-gradient-to-b from-[#24140d] to-[#150d08] border border-bcs-copper rounded-xl px-2.5 py-1.5 text-center shadow">
+      <div class="flex items-center justify-center gap-1 text-[8px] font-mono text-bcs-gold border-b border-bcs-copper/30 pb-0.5 mb-1">
+        <span class="w-1.5 h-1.5 rounded-full bg-red-500 animate-ping"></span>
+        <span class="font-bold uppercase">Depå</span>
         <span>•</span>
         <span id="annAuthor"></span>
       </div>
-      <div id="annText" class="font-oswald text-xs font-bold text-bcs-cream leading-snug"></div>
+      <div id="annText" class="font-oswald text-[11px] font-bold text-bcs-cream leading-snug"></div>
     </div>
 
-    <!-- 1. NÄRVARO I VERKSTAN (Centrerad) -->
-    <section class="bg-bcs-charcoal border border-bcs-border border-t-2 border-t-bcs-copper rounded-xl p-2.5 text-center shadow flex-shrink-0">
-      <div class="flex items-center justify-center gap-2 border-b border-dashed border-bcs-border pb-1.5 mb-2">
+    <!-- 1. NÄRVARO I VERKSTAN -->
+    <section class="w-full bg-bcs-charcoal border border-bcs-border border-t-2 border-t-bcs-copper rounded-xl p-2 text-center shadow">
+      <div class="flex items-center justify-center gap-1.5 border-b border-dashed border-bcs-border pb-1 mb-1.5">
         <div id="presenceLed" class="led"></div>
-        <span class="text-xs font-bold uppercase tracking-wider text-bcs-cream">Närvaro i Verkstan</span>
+        <span class="text-[11px] font-bold uppercase tracking-wider text-bcs-cream">Närvaro</span>
         <span class="text-bcs-copper">•</span>
-        <span id="presenceCount" class="font-mono text-[10px] text-bcs-gold
+        <span id="presenceCount" class="font-mono text-[9px] text-bcs-gold font-bold">0 på plats</span>
+      </div>
+      <div id="presenceList" class="flex flex-wrap justify-center gap-1 font-mono text-[10px] min-h-[22px] items-center px-1">
+        <span class="text-zinc-500 text-[9px]">Läser in...</span>
+      </div>
+    </section>
+
+    <!-- 2. ATT FIXA & KALENDER (2 KOM
