@@ -1,22 +1,20 @@
 {
+  "id": "/burncreekspeedshopandroid/index.html",
   "name": "Burn Creek Speedshop TV",
   "short_name": "Burn Creek TV",
   "description": "Garage-dashboard för Burn Creek Speedshop",
-  "start_url": "./index.html",
-  "display": "fullscreen",
+  "start_url": "/burncreekspeedshopandroid/index.html",
+  "scope": "/burncreekspeedshopandroid/",
+  "display": "standalone",
   "orientation": "landscape",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "icons": [
     {
-      "src": "./burn_creek_speedshop_rund_est.png",
-      "sizes": "192x192",
-      "type": "image/png"
-    },
-    {
-      "src": "./burn_creek_speedshop_rund_est.png",
+      "src": "/burncreekspeedshopandroid/logo.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     }
   ]
 }
