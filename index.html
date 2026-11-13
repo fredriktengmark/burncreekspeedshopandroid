@@ -2,717 +2,1224 @@
 <html lang="sv">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TERMINAL FTE // VÄRNAMO REGIONFASTIGHETER</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Burn Creek Speedshop - Verkstad Dashboard</title>
+
+  <!-- PWA Manifest & ikoner för Burn Creek TV -->
+  <link rel="manifest" href="./dashboard-manifest.json">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <link rel="apple-touch-icon" href="./logo.png">
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./dashboard-sw.js');
+      });
+    }
+  </script>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Google Fonts: Rye / Oswald för hot-rod stil, JetBrains Mono för siffror -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700;800&family=JetBrains+Mono:wght@400;600;700;800&family=Rye&display=swap" rel="stylesheet">
+  
+  <!-- Phosphor Icons CDN -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Firebase SDKs (Compat v9) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bcs: {
+              copper: '#b25329',      // Logotypens brända terrakotta/koppar
+              copperDark: '#853716',  // Mörkare kopparskugga
+              copperLight: '#c86332', // Ljusare kopparaccent
+              cream: '#f4ecd8',       // Vintage ivory / krämvit
+              creamMuted: '#d3c5a6',  // Dämpad cream
+              black: '#121110',       // Matt kolsvart
+              charcoal: '#1c1a18',    // Paneler
+              charcoalDark: '#161413',// Bakgrunder
+              border: '#38322b',      // Kantlinjer
+              gold: '#df9837'         // Stjärnor & accenter
+            }
+          },
+          fontFamily: {
+            brand: ['Rye', 'Oswald', 'serif'],
+            oswald: ['Oswald', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+            sans: ['Oswald', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+
   <style>
-    :root {
-      --bg-dark: #020703;
-      --panel-bg: rgba(4, 18, 8, 0.92);
-      --terminal-green: #00ff66;
-      --terminal-dim: #008f39;
-      --terminal-bright: #7cff9e;
-      --terminal-alert: #ff3333;
-      --terminal-amber: #ffb000;
-      --border-color: #005a24;
-      --border-bright: #00ff66;
-      --glow: 0 0 8px rgba(0, 255, 102, 0.45);
-      --font-stack: "Courier New", Courier, "Lucida Console", "Cascadia Code", monospace;
-    }
-
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-
+    /* Bakgrund med svart metallisk durkplåt (Diamond Plate) & racing-belysning */
     body {
-      background-color: var(--bg-dark);
-      color: var(--terminal-green);
-      font-family: var(--font-stack);
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-      padding: 0.6rem;
-      gap: 0.6rem;
-      text-shadow: var(--glow);
-      position: relative;
+      background-color: #0d0c0b;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(178, 83, 41, 0.22), transparent 62%),
+        radial-gradient(circle at 100% 100%, rgba(178, 83, 41, 0.12), transparent 48%),
+        radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.72) 100%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cdefs%3E%3Cg id='lug'%3E%3Cellipse cx='0' cy='0.8' rx='5.2' ry='1.9' fill='%23040404'/%3E%3Cellipse cx='0' cy='-0.3' rx='5' ry='1.7' fill='%232e2c2a'/%3E%3Cellipse cx='0' cy='0' rx='4.6' ry='1.4' fill='%231d1b1a'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23lug' transform='translate(9 9) rotate(-45)'/%3E%3Cuse href='%23lug' transform='translate(27 9) rotate(45)'/%3E%3Cuse href='%23lug' transform='translate(9 27) rotate(45)'/%3E%3Cuse href='%23lug' transform='translate(27 27) rotate(-45)'/%3E%3C/svg%3E");
+      background-size: 100% 100%, 100% 100%, 100% 100%, 36px 36px;
+      background-attachment: fixed;
+      color: #f4ecd8;
+      min-height: 100vh;
+      width: 100%;
+      overflow-x: hidden;
+      overflow-y: auto;
     }
 
-    /* CRT Scanlines Overlay */
-    body::after {
-      content: " ";
-      display: block;
-      position: absolute;
-      top: 0; left: 0; bottom: 0; right: 0;
-      background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.35) 50%);
-      background-size: 100% 4px;
-      z-index: 99;
-      pointer-events: none;
-      opacity: 0.8;
+    /* TV-läge & Liggande mobil (Landscape): Lås till 100vh utan scroll */
+    @media (min-width: 1024px), (orientation: landscape) and (min-width: 640px) {
+      body {
+        height: 100vh;
+        width: 100vw;
+        overflow: hidden;
+      }
     }
 
-    /* Toppbanner */
-    .top-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: var(--panel-bg);
-      border: 1px solid var(--terminal-green);
-      padding: 0.5rem 1.2rem;
-      box-shadow: inset 0 0 10px rgba(0, 255, 102, 0.15), 0 0 8px rgba(0, 255, 102, 0.2);
+    /* Komprimera header något på liggande mobilskärmar så allt ryms på höjden */
+    @media (orientation: landscape) and (max-height: 520px) {
+      .dash-header {
+        height: 68px !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+      }
+      .dash-logo-wrap {
+        width: 50px !important;
+        height: 50px !important;
+      }
+      .dash-title {
+        font-size: 1.45rem !important;
+      }
+      .dash-subtitle {
+        display: none !important;
+      }
+      .dash-clock-box {
+        padding: 0.25rem 0.9rem !important;
+      }
+      .dash-clock {
+        font-size: 1.45rem !important;
+      }
+      .dash-date {
+        font-size: 0.65rem !important;
+        margin-top: 0 !important;
+      }
+      .dash-crew-badge {
+        display: none !important;
+      }
+      .dash-footer {
+        height: 24px !important;
+      }
     }
-    .top-title {
-      font-size: 1.15rem;
-      font-weight: bold;
-      letter-spacing: 2px;
-      color: var(--terminal-green);
-      display: flex;
-      align-items: center;
-      gap: 0.6rem;
-      text-transform: uppercase;
+
+    /* Schackrutig flaggrand */
+    .checkered-border {
+      background-image: 
+        linear-gradient(45deg, #121110 25%, transparent 25%), 
+        linear-gradient(-45deg, #121110 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #121110 75%), 
+        linear-gradient(-45deg, transparent 75%, #121110 75%);
+      background-size: 14px 14px;
+      background-position: 0 0, 0 7px, 7px -7px, -7px 0px;
+      background-color: #f4ecd8;
     }
-    .top-title .sys-status {
+
+    /* Nit-effekt */
+    .rivet {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 30% 30%, #df9837, #4a2817);
+      box-shadow: inset 0 1px 1px rgba(255,255,255,0.6), 0 1px 2px rgba(0,0,0,0.8);
+    }
+
+    /* Ticker animation */
+    @keyframes marquee {
+      0% { transform: translateX(100%); }
+      100% { transform: translateX(-100%); }
+    }
+    .animate-marquee {
       display: inline-block;
-      width: 9px;
-      height: 9px;
-      background: var(--terminal-green);
-      box-shadow: var(--glow);
-      animation: blink 1.2s infinite steps(1);
-    }
-    .top-clock {
-      font-size: 2.1rem;
-      font-weight: 900;
-      line-height: 1;
-      color: var(--terminal-bright);
-      display: flex;
-      align-items: baseline;
-      gap: 1rem;
-      letter-spacing: 1px;
-    }
-    .top-date {
-      color: var(--terminal-dim);
-      font-size: 1.05rem;
-      font-weight: normal;
-      text-transform: uppercase;
+      white-space: nowrap;
+      animation: marquee 35s linear infinite;
     }
 
-    /* Huvudgrid */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 430px 1fr 1fr;
-      gap: 0.6rem;
-      flex: 1;
-      min-height: 0;
+    /* Närvaro-kort styling */
+    .presence-card {
+      background: #161413;
+      border: 1px solid #38322b;
+      border-top: 3px solid #b25329;
+      border-radius: 0.5rem;
+      padding: 9px;
+      color: #f4ecd8;
     }
-
-    /* Paneler */
-    .panel {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-color);
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      position: relative;
-    }
-    .panel:hover {
-      border-color: var(--terminal-green);
-    }
-    .panel-header {
-      padding: 0.4rem 0.75rem;
-      font-size: 0.72rem;
-      font-weight: bold;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-      border-bottom: 1px solid var(--border-color);
+    .presence-header {
       display: flex;
       align-items: center;
-      justify-content: space-between;
-      background: rgba(0, 40, 15, 0.4);
-      color: var(--terminal-green);
+      gap: 8px;
+      margin-bottom: 6px;
+      border-bottom: 1px dashed #38322b;
+      padding-bottom: 4px;
     }
-
-    /* Vänster Kolumn */
-    .telemetry-column {
-      display: flex;
-      flex-direction: column;
-      gap: 0.55rem;
-      height: 100%;
-      overflow-y: auto;
-      padding-right: 2px;
+    .dash-led {
+      width: 11px;
+      height: 11px;
+      border-radius: 50%;
+      background: #3f3933;
+      border: 1px solid #25211d;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
     }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar { width: 4px; height: 4px; }
-    ::-webkit-scrollbar-track { background: var(--bg-dark); }
-    ::-webkit-scrollbar-thumb { background: var(--terminal-dim); }
-    ::-webkit-scrollbar-thumb:hover { background: var(--terminal-green); }
-
-    /* Väder */
-    .weather-card {
-      padding: 0.6rem 0.8rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.35rem;
+    .dash-led.active {
+      background: #2ecc71;
+      box-shadow: 0 0 10px #2ecc71, 0 0 4px #2ecc71;
     }
-    .weather-main {
-      display: flex;
-      justify-content: space-between;
-      align-items: baseline;
-    }
-    .temp-val {
-      font-size: 2.8rem;
-      font-weight: 900;
-      line-height: 1;
-      color: var(--terminal-bright);
-    }
-    .condition-val {
-      font-size: 0.95rem;
-      color: var(--terminal-green);
-      text-align: right;
+    .presence-title {
+      font-family: 'Oswald', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
       text-transform: uppercase;
+      color: #f4ecd8;
     }
-    .meta-metrics {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 0.4rem;
-      margin-top: 0.2rem;
-    }
-    .metric-box {
-      border: 1px dashed var(--border-color);
-      padding: 0.3rem 0.5rem;
-      background: rgba(0, 20, 5, 0.3);
-    }
-    .metric-box label {
-      display: block;
-      font-size: 0.58rem;
-      color: var(--terminal-dim);
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-    .metric-box span {
-      font-size: 0.95rem;
-      font-weight: bold;
-      color: var(--terminal-bright);
-    }
-
-    /* VMA */
-    .vma-panel {
-      border: 1px solid var(--border-color);
-      border-left: 4px solid var(--terminal-green);
-      transition: all 0.2s ease;
-    }
-    .vma-panel.active {
-      border: 1px solid var(--terminal-alert);
-      border-left: 5px solid var(--terminal-alert);
-      background: rgba(40, 5, 5, 0.6);
-      animation: alertFlash 1s infinite steps(2);
-    }
-    @keyframes alertFlash {
-      0% { box-shadow: inset 0 0 15px rgba(255, 51, 51, 0.4); }
-      50% { box-shadow: inset 0 0 2px rgba(255, 51, 51, 0.1); }
-    }
-    .vma-content {
-      padding: 0.45rem 0.75rem;
-      font-size: 0.76rem;
-      color: var(--terminal-green);
-      line-height: 1.3;
-    }
-    .vma-status-tag {
-      font-size: 0.65rem;
-      font-weight: bold;
-      padding: 2px 6px;
-      border: 1px solid var(--terminal-green);
-      background: transparent;
-      color: var(--terminal-green);
-    }
-    .vma-panel.active .vma-status-tag {
-      border-color: var(--terminal-alert);
-      background: var(--terminal-alert);
-      color: #000;
-    }
-
-    /* Sektionspaneler */
-    .section-panel {
-      flex: 1;
-      min-height: 130px;
+    .presence-list {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #d3c5a6;
       display: flex;
-      flex-direction: column;
+      flex-wrap: wrap;
+      gap: 5px;
+      min-height: 24px;
+      align-items: center;
     }
-    .feed-container {
-      flex: 1;
-      overflow-y: auto;
-      padding: 0.4rem;
-      display: flex;
-      flex-direction: column;
-      gap: 0.45rem;
-    }
-    .feed-node {
-      padding: 0.4rem 0.55rem;
-      border: 1px solid rgba(0, 255, 102, 0.18);
-      font-size: 0.74rem;
-      text-decoration: none;
-      display: block;
-      color: var(--terminal-green);
-      background: rgba(0, 15, 5, 0.4);
-      position: relative;
-    }
-    .feed-node::before {
-      content: ">";
-      position: absolute;
-      left: 3px;
-      color: var(--terminal-dim);
-      font-weight: bold;
-    }
-    .feed-node:hover {
-      border-color: var(--terminal-green);
-      background: rgba(0, 255, 102, 0.08);
-    }
-    .feed-node > * {
-      padding-left: 10px;
-    }
-    .feed-title {
-      font-weight: bold;
-      margin-bottom: 0.15rem;
-      display: flex;
-      justify-content: space-between;
-      color: var(--terminal-bright);
-      text-transform: uppercase;
+    .presence-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: #121110;
+      border: 1px solid #b25329;
+      padding: 2px 7px;
+      border-radius: 4px;
+      font-weight: 700;
+      color: #f4ecd8;
       font-size: 0.72rem;
     }
-    .feed-msg {
-      color: var(--terminal-green);
-      font-size: 0.70rem;
-      line-height: 1.25;
-      opacity: 0.9;
+    .presence-time {
+      font-size: 0.65rem;
+      color: #df9837;
+      font-weight: normal;
     }
 
-    .push-btn {
-      background: transparent;
-      border: 1px solid var(--terminal-dim);
-      color: var(--terminal-green);
-      font-family: var(--font-stack);
-      font-size: 0.62rem;
-      padding: 2px 7px;
-      cursor: pointer;
-      text-transform: uppercase;
+    /* Anslag / Banner styling */
+    .dash-announcement-card {
+      background: linear-gradient(180deg, #24140d 0%, #150d08 100%);
+      border: 2px solid #d9622b;
+      border-radius: 8px;
+      padding: 10px 16px;
+      box-shadow: 0 0 25px rgba(217, 98, 43, 0.45);
+      font-family: 'Oswald', sans-serif;
+      flex-shrink: 0;
     }
-    .push-btn:hover {
-      border-color: var(--terminal-green);
-      background: rgba(0, 255, 102, 0.15);
+    .announcement-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 4px;
+      border-bottom: 1px dashed rgba(217, 98, 43, 0.4);
+      padding-bottom: 4px;
     }
-    .push-btn.enabled {
-      background: var(--terminal-green);
-      color: #000;
-      border-color: var(--terminal-green);
-      font-weight: bold;
+    .announcement-pulse {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #e74c3c;
+      box-shadow: 0 0 10px #e74c3c;
+      animation: blink 1.2s infinite;
+      flex-shrink: 0;
     }
-
-    /* Kartor anpassade till CRT/Matrix monokrom stil */
-    .map-frame-wrapper {
-      position: relative;
-      height: 100%;
-      width: 100%;
-      background: #000;
-    }
-    .map-tag {
-      position: absolute;
-      top: 6px;
-      left: 6px;
-      background: rgba(0, 10, 0, 0.9);
-      border: 1px solid var(--terminal-green);
-      color: var(--terminal-bright);
-      font-size: 0.68rem;
-      font-weight: bold;
-      padding: 3px 7px;
-      z-index: 5;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    iframe {
-      width: 100%;
-      height: 100%;
-      border: none;
-      /* CRT-filter på externa kartor för grön monokrom terminal-look */
-      filter: invert(90%) hue-rotate(95deg) saturate(350%) brightness(0.85) contrast(1.2);
-      opacity: 0.85;
-    }
-
     @keyframes blink {
-      0%, 49% { opacity: 1; }
-      50%, 100% { opacity: 0; }
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.35; transform: scale(0.85); }
+    }
+    .announcement-title {
+      font-family: 'Rye', 'Oswald', serif;
+      color: #f4ecd8;
+      font-size: 0.95rem;
+      letter-spacing: 1px;
+      flex: 1;
+      text-transform: uppercase;
+    }
+    .announcement-time {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #df9837;
+    }
+    .announcement-body {
+      font-family: 'Oswald', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: #eedcc0;
+      line-height: 1.25;
+      margin: 4px 0 6px 0;
+      text-shadow: 2px 2px 0px #000;
+      letter-spacing: 0.5px;
+    }
+    .announcement-footer {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.75rem;
+      color: #d9622b;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+
+    /* Scrollbars */
+    #dash-todos-container::-webkit-scrollbar,
+    #rssFeedContainer::-webkit-scrollbar {
+      width: 4px;
+    }
+    #dash-todos-container::-webkit-scrollbar-track,
+    #rssFeedContainer::-webkit-scrollbar-track {
+      background: #121110;
+    }
+    #dash-todos-container::-webkit-scrollbar-thumb,
+    #rssFeedContainer::-webkit-scrollbar-thumb {
+      background: #38322b;
+      border-radius: 2px;
+    }
+    #dash-todos-container::-webkit-scrollbar-thumb:hover,
+    #rssFeedContainer::-webkit-scrollbar-thumb:hover {
+      background: #b25329;
     }
   </style>
 </head>
-<body>
+<body class="font-sans flex flex-col justify-between p-2 sm:p-2.5 selection:bg-bcs-copper selection:text-white select-none">
 
-  <!-- Toppbanner -->
-  <header class="top-bar">
-    <div class="top-title">
-      <span class="sys-status"></span>
-      SYS_TERM // FTE VÄRNAMO REGIONFASTIGHETER
+  <!-- ========================================================== -->
+  <!-- 1. HEADER (LOGGA, KLOCKA OCH STATUS)                       -->
+  <!-- ========================================================== -->
+  <header class="dash-header w-full min-h-[82px] sm:h-[115px] lg:h-[135px] flex-shrink-0 bg-bcs-charcoal border-2 border-bcs-border rounded-xl shadow-2xl px-3 sm:px-6 py-2 relative overflow-hidden flex flex-wrap sm:flex-nowrap items-center justify-between gap-2">
+    <div class="checkered-border h-2 sm:h-2.5 w-full absolute top-0 left-0 opacity-85"></div>
+    <div class="rivet absolute top-3 left-3 hidden sm:block"></div>
+    <div class="rivet absolute top-3 right-3 hidden sm:block"></div>
+
+    <!-- LOGO & BRAND -->
+    <div class="flex items-center gap-3 sm:gap-5 min-w-0">
+      <div class="dash-logo-wrap relative w-14 h-14 sm:w-20 sm:h-20 lg:w-28 lg:h-28 flex-shrink-0 rounded-full border-2 border-bcs-copper/80 p-1 bg-bcs-black shadow-2xl overflow-hidden flex items-center justify-center">
+        <img 
+          id="shopLogoImg" 
+          src="./logo.png" 
+          alt="Burn Creek Speedshop Logo"
+          class="w-full h-full object-contain rounded-full"
+        />
+      </div>
+
+      <div class="min-w-0">
+        <h1 class="dash-title font-brand text-xl sm:text-3xl lg:text-5xl text-bcs-cream tracking-wide uppercase drop-shadow-md leading-tight truncate">
+          Burn Creek <span class="text-bcs-copper">Speedshop</span>
+        </h1>
+        <div class="dash-subtitle flex flex-wrap items-center gap-1.5 sm:gap-3 text-[11px] sm:text-sm lg:text-base font-oswald uppercase tracking-widest text-bcs-creamMuted mt-0.5 sm:mt-1.5">
+          <span class="text-bcs-gold">★</span>
+          <span class="text-bcs-cream font-bold">Brännehylte HQ</span>
+          <span class="text-bcs-copper">•</span>
+          <span>Gnosjö / Småland</span>
+          <span class="text-bcs-copper hidden md:inline">•</span>
+          <span class="text-bcs-gold font-bold hidden md:inline">EST. 2026</span>
+          <span class="text-bcs-gold hidden md:inline">★</span>
+        </div>
+      </div>
     </div>
-    <div class="top-clock">
-      <span class="top-date" id="date">--</span>
-      <span id="time">--:--:--</span>
+
+    <!-- KLOCKA & DATUM I MITTEN -->
+    <div class="dash-clock-box bg-bcs-black/95 border-2 border-bcs-copper/70 px-3 sm:px-6 lg:px-7 py-1.5 sm:py-2 rounded-xl shadow-inner text-center flex-shrink-0">
+      <div id="liveClock" class="dash-clock font-mono text-xl sm:text-3xl lg:text-5xl font-extrabold text-bcs-cream tracking-widest leading-none">
+        00:00:00
+      </div>
+      <div id="liveDate" class="dash-date text-[10px] sm:text-xs lg:text-sm uppercase font-oswald tracking-wider text-bcs-gold font-bold mt-1">
+        Laddar datum...
+      </div>
+    </div>
+
+    <!-- PRIVAT STATUS & KONTROLLER -->
+    <div class="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+      <div class="dash-crew-badge hidden xl:flex px-4 py-2 rounded-lg font-oswald text-sm uppercase tracking-wider font-bold border-2 items-center gap-2.5 shadow-md bg-zinc-900/90 text-bcs-cream border-bcs-copper/70">
+        <span class="h-3.5 w-3.5 rounded-full bg-bcs-copper animate-pulse shadow-sm shadow-bcs-copper"></span>
+        <span>PRIVAT VERKSTAD • CREW ONLY</span>
+      </div>
+
+      <button id="fullscreenBtn" title="Fullskärm på TV" class="p-2 sm:p-2.5 rounded-lg bg-bcs-black border border-bcs-border hover:border-bcs-copper text-bcs-cream shadow active:scale-95 transition-transform">
+        <i class="ph-bold ph-corners-out text-lg sm:text-xl"></i>
+      </button>
+
+      <button id="refreshBtn" title="Uppdatera" class="p-2 sm:p-2.5 rounded-lg bg-bcs-black border border-bcs-border hover:border-bcs-copper text-bcs-cream shadow active:scale-95 transition-transform">
+        <i class="ph-bold ph-arrows-clockwise text-lg sm:text-xl"></i>
+      </button>
     </div>
   </header>
 
-  <!-- Huvudgrid -->
-  <main class="main-grid">
+  <!-- ========================================================== -->
+  <!-- 2. HUVUDYTA: 1 KOLUMN I MOBIL PORTRAIT, 3 KOLUMNER I TV    -->
+  <!-- ========================================================== -->
+  <main class="grid grid-cols-1 landscape:grid-cols-12 lg:grid-cols-12 gap-2.5 my-2 flex-1 min-h-0">
+    
+    <!-- DEDIKERAT ANSLAG PÅ DASHBOARDEN (Döljs automatiskt om inget finns) -->
+    <div id="dash-announcement-card" class="col-span-1 landscape:col-span-12 lg:col-span-12 dash-announcement-card" style="display: none;">
+      <div class="announcement-header">
+        <div class="announcement-pulse"></div>
+        <span class="announcement-title">MEDDELANDE FRÅN DEPÅN</span>
+        <span id="dash-announcement-time" class="announcement-time"></span>
+      </div>
+      <div id="dash-announcement-text" class="announcement-body"></div>
+      <div id="dash-announcement-author" class="announcement-footer"></div>
+    </div>
 
-    <!-- Kolumn 1: Telemetri & Dataflöden -->
-    <div class="telemetry-column">
-
-      <!-- Väder -->
-      <div class="panel">
-        <div class="panel-header">
-          <span>// SENSOR_TELEMETRI</span>
-          <span style="color:var(--terminal-bright);">[VÄRNAMO]</span>
+    <!-- ======================================================== -->
+    <!-- KOLUMN 1: VÄDER + MOTORSPORT NYHETER (4 cols)            -->
+    <!-- ======================================================== -->
+    <section class="col-span-1 landscape:col-span-4 lg:col-span-4 bg-bcs-charcoal border border-bcs-border rounded-xl p-2.5 flex flex-col justify-between shadow-xl overflow-hidden min-h-0 gap-2">
+      
+      <!-- Överst: Väder & Bestyckningsråd (Brännehylte) -->
+      <div class="flex-shrink-0">
+        <div class="flex items-center justify-between pb-1 border-b border-bcs-border">
+          <h2 class="font-oswald text-xs xl:text-sm uppercase tracking-wide text-bcs-cream flex items-center gap-1.5">
+            <i class="ph-bold ph-cloud-sun text-bcs-copper text-base"></i>
+            Väder Brännehylte
+          </h2>
+          <span class="font-mono text-[9px] bg-bcs-black px-1.5 py-0.5 rounded text-bcs-gold border border-bcs-border">
+            57.3°N, 13.8°E
+          </span>
         </div>
-        <div class="weather-card">
-          <div class="weather-main">
-            <div class="temp-val" id="temp">--°</div>
-            <div class="condition-val" id="condition">INITIALISERAR...</div>
-          </div>
-          <div class="meta-metrics">
-            <div class="metric-box">
-              <label>VINDHASTIGHET</label>
-              <span id="wind">-- m/s</span>
+
+        <div class="my-1.5 flex items-center justify-between px-1">
+          <div>
+            <div class="flex items-baseline gap-1">
+              <span id="weatherTemp" class="font-oswald text-3xl font-black text-bcs-cream">--</span>
+              <span class="text-lg font-oswald text-bcs-copper font-bold">°C</span>
             </div>
-            <div class="metric-box">
-              <label>REL_FUKTIGHET</label>
-              <span id="humidity">-- %</span>
-            </div>
+            <p id="weatherDesc" class="text-[11px] font-oswald text-bcs-creamMuted leading-tight">Hämtar data...</p>
+          </div>
+          <div id="weatherIcon" class="w-10 h-10 rounded-lg bg-bcs-black border border-bcs-border flex items-center justify-center text-2xl text-bcs-gold">
+            <i class="ph-fill ph-sun"></i>
           </div>
         </div>
-      </div>
 
-      <!-- VMA -->
-      <div class="panel vma-panel" id="vma-panel">
-        <div class="panel-header">
-          <span>// VMA / NÖDLÄGE</span>
-          <span class="vma-status-tag" id="vma-tag">STANDBY</span>
-        </div>
-        <div class="vma-content" id="vma-content">
-          Avsöker regionala larmfrekvenser...
-        </div>
-      </div>
-
-      <!-- Polis -->
-      <div class="panel section-panel">
-        <div class="panel-header">
+        <!-- Mätvärden -->
+        <div class="grid grid-cols-3 gap-1 bg-bcs-black/80 p-1.5 rounded border border-bcs-border text-center font-mono">
           <div>
-            <span>[#] POLIS // JÖNKÖPINGS LÄN</span>
+            <span class="text-zinc-500 block text-[8px] uppercase font-bold">Tryck</span>
+            <span id="weatherPressure" class="font-bold text-bcs-gold text-xs">-- hPa</span>
           </div>
-          <button id="btn-push" class="push-btn" onclick="requestNotificationAccess()">[ AKTIVERA PUSH ]</button>
-        </div>
-        <div class="feed-container" id="police-feed">
-          <div style="font-size:0.75rem; color:var(--terminal-dim);">Avläser händelselogg...</div>
-        </div>
-      </div>
-
-      <!-- Lokala Nyheter -->
-      <div class="panel section-panel">
-        <div class="panel-header">
+          <div class="border-x border-bcs-border">
+            <span class="text-zinc-500 block text-[8px] uppercase font-bold">Fukt</span>
+            <span id="weatherHumidity" class="font-bold text-bcs-cream text-xs">-- %</span>
+          </div>
           <div>
-            <span>[>] LOKALNYHETER // SVT</span>
+            <span class="text-zinc-500 block text-[8px] uppercase font-bold">Vind</span>
+            <span id="weatherWind" class="font-bold text-bcs-cream text-xs">-- m/s</span>
           </div>
-          <span style="font-size: 0.65rem; color: var(--terminal-dim);">FEED: ONLINE</span>
         </div>
-        <div class="feed-container" id="news-feed">
-          <div style="font-size:0.75rem; color:var(--terminal-dim);">Tar emot dataström...</div>
+
+        <!-- Bestyckningsråd -->
+        <div class="mt-1.5 bg-bcs-copper/15 border border-bcs-copper/40 px-2 py-1.5 rounded flex items-center gap-1.5">
+          <i class="ph-bold ph-gauge text-bcs-copper text-base flex-shrink-0"></i>
+          <span id="carbAdvice" class="text-[10px] font-oswald text-bcs-cream leading-tight">Läser av barometertryck...</span>
         </div>
       </div>
 
-      <!-- Trafik -->
-      <div class="panel section-panel">
-        <div class="panel-header">
-          <div>
-            <span>[!] TRAFIKVERKET // REGION 06</span>
+      <!-- Nederst: Motorsport Live Nyhetsflöde -->
+      <div class="flex-1 flex flex-col justify-between border-t border-bcs-border pt-1.5 min-h-0">
+        <div class="flex items-center justify-between pb-1 flex-shrink-0">
+          <h3 class="font-oswald text-xs uppercase tracking-wide text-bcs-cream flex items-center gap-1.5">
+            <i class="ph-bold ph-newspaper text-bcs-copper"></i>
+            Motorsport Live Feed
+          </h3>
+          <span class="inline-flex items-center gap-1 font-mono text-[8px] bg-bcs-black px-1 py-0.5 rounded text-bcs-copper border border-bcs-border">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+            <span id="rssLastUpdated">Live</span>
+          </span>
+        </div>
+
+        <!-- Nyhetskort -->
+        <div id="rssFeedContainer" class="flex-1 flex flex-col justify-between gap-1.5 min-h-0 my-0.5">
+          <div class="p-2 rounded bg-bcs-black/80 border border-bcs-border text-center text-zinc-400 font-mono text-[10px]">
+            Hämtar nyheter från Bilsport, Drag Illustrated & Motorsport...
           </div>
-          <span style="font-size: 0.65rem; color: var(--terminal-bright);" id="traffic-counter">0 HÄNDELSER</span>
         </div>
-        <div class="feed-container" id="traffic-feed">
-          <div style="font-size:0.75rem; color:var(--terminal-dim);">Avläser vägnät...</div>
+
+        <div class="pt-1 border-t border-bcs-border/60 flex items-center justify-between text-[9px] font-mono text-zinc-400 flex-shrink-0">
+          <span class="text-bcs-copper font-bold">[Bilsport/SVT • Drag Ill. • Motorsport]</span>
+          <span class="text-zinc-500">Roterar var 12:e sek</span>
         </div>
       </div>
 
-    </div>
+    </section>
 
-    <!-- Kolumn 2: Satellitkarta Regn -->
-    <div class="panel">
-      <div class="map-frame-wrapper">
-        <div class="map-tag">RADAR // REGN & MOLN (Z 5.5)</div>
-        <iframe 
-          id="radar-frame"
-          src="https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=mm&metricTemp=°C&metricWind=m%2Fs&zoom=5.5&overlay=radar&product=radar&level=surface&lat=57.186&lon=14.040" 
-          loading="lazy">
-        </iframe>
-      </div>
-    </div>
+    <!-- ======================================================== -->
+    <!-- KOLUMN 2: DRAGSTRIP LIVE TV + KALENDER (5 cols)          -->
+    <!-- ======================================================== -->
+    <section class="col-span-1 landscape:col-span-5 lg:col-span-5 bg-bcs-charcoal border border-bcs-border rounded-xl p-2.5 flex flex-col justify-between shadow-xl overflow-hidden min-h-0 gap-2 order-first landscape:order-none lg:order-none">
+      
+      <!-- Övre del: Dragstrip Live TV -->
+      <div class="flex-1 flex flex-col justify-between min-h-0">
+        <div class="flex flex-wrap items-center justify-between gap-1.5 pb-1.5 border-b border-bcs-border flex-shrink-0">
+          <div class="flex items-center gap-2">
+            <div class="w-2.5 h-2.5 rounded-full bg-red-600 animate-ping"></div>
+            <h2 class="font-oswald text-sm xl:text-base uppercase tracking-wide text-bcs-cream flex items-center gap-1.5">
+              <i class="ph-bold ph-television text-bcs-copper text-lg"></i>
+              Dragstrip Live TV
+            </h2>
+          </div>
+          
+          <div class="flex items-center gap-1 flex-wrap">
+            <button onclick="switchStream('_vBPyEUb_hE')" title="Vald Drag Video" class="px-2 py-0.5 text-[10px] font-mono rounded bg-bcs-copper text-white font-bold hover:bg-bcs-copperLight transition-colors">
+              Aktiv Video
+            </button>
+            <button onclick="switchStream('IW4TXPrB8Ug')" title="NHRA Top Fuel & Nitro Highlights" class="px-2 py-0.5 text-[10px] font-mono rounded bg-bcs-black hover:bg-bcs-copper text-zinc-300 hover:text-white border border-bcs-border transition-colors">
+              Nitro Runs
+            </button>
+            <button onclick="switchStream('bCNnpkqhJVM')" title="NHRA Las Vegas Nationals Highlights" class="px-2 py-0.5 text-[10px] font-mono rounded bg-bcs-black hover:bg-bcs-copper text-zinc-300 hover:text-white border border-bcs-border transition-colors">
+              Nationals
+            </button>
+            <button id="customStreamBtn" class="px-2 py-0.5 text-[10px] font-mono rounded bg-bcs-black hover:bg-bcs-copper text-zinc-300 hover:text-white border border-bcs-border transition-colors">
+              Klistra länk
+            </button>
+          </div>
+        </div>
 
-    <!-- Kolumn 3: Satellitkarta Åska -->
-    <div class="panel">
-      <div class="map-frame-wrapper">
-        <div class="map-tag">SENSOR // ÅSKA & BLIXT (Z 5.5)</div>
-        <iframe 
-          id="lightning-frame"
-          src="https://map.blitzortung.org/index.php?interactive=1&MapStyle=2#5.5/57.186/14.040" 
-          loading="lazy">
-        </iframe>
+        <div class="flex-1 my-1.5 bg-bcs-black rounded-lg border border-bcs-border overflow-hidden relative shadow-inner flex items-center justify-center min-h-[200px] landscape:min-h-0 lg:min-h-0">
+          <iframe 
+            id="dragTvFrame"
+            class="w-full h-full object-cover"
+            src="https://www.youtube.com/embed/_vBPyEUb_hE?autoplay=1&mute=1&controls=1&loop=1&playlist=_vBPyEUb_hE&modestbranding=1&rel=0&enablejsapi=1" 
+            title="Dragstrip Live TV" 
+            frameborder="0" 
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
+            allowfullscreen>
+          </iframe>
+        </div>
       </div>
-    </div>
+
+      <!-- Nedre del: Kalender / Kommande i Verkstan (Synkat med appen) -->
+      <div class="bg-bcs-black/95 p-2 rounded-lg border border-bcs-border border-t-2 border-t-bcs-copper flex-shrink-0 shadow">
+        <div class="flex items-center justify-between pb-1 border-b border-bcs-border/60">
+          <span class="text-xs font-oswald uppercase text-bcs-cream font-bold flex items-center gap-1.5 tracking-wide">
+            <i class="ph-bold ph-calendar-check text-bcs-copper text-sm"></i>
+            Kommande i Kalendern
+          </span>
+          <span id="dash-calendar-badge" class="text-[9px] font-mono text-bcs-gold font-bold">Synkat med appen</span>
+        </div>
+
+        <div id="dash-calendar-container" class="grid grid-cols-1 sm:grid-cols-3 gap-1.5 mt-1.5">
+          <div class="col-span-1 sm:col-span-3 text-center text-zinc-500 font-mono text-[10px] py-2">
+            Laddar kalender från Firebase...
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- ======================================================== -->
+    <!-- KOLUMN 3: NÄRVARO + PLATSER/CREW + ATT FIXA (3 cols)     -->
+    <!-- ======================================================== -->
+    <section class="col-span-1 landscape:col-span-3 lg:col-span-3 bg-bcs-charcoal border border-bcs-border rounded-xl p-2.5 flex flex-col justify-between shadow-xl overflow-hidden min-h-0 gap-2">
+      
+      <!-- 1. NÄRVARO-KORTET (LIVE STATUS) -->
+      <div class="dashboard-widget presence-card flex-shrink-0 shadow-lg">
+        <div class="presence-header">
+          <div id="dash-led" class="dash-led"></div>
+          <span class="presence-title flex items-center gap-1.5">
+            <i class="ph-bold ph-lightning text-bcs-copper"></i>
+            Närvaro i Verkstan
+          </span>
+        </div>
+        <div id="dash-presence-list" class="presence-list">
+          Laddar närvaro från Firebase...
+        </div>
+      </div>
+
+      <!-- 2. REGISTRERADE MEDLEMMAR MED PLATS I VERKSTADEN -->
+      <div class="bg-bcs-black/95 p-2 rounded-lg border border-bcs-border flex-shrink-0 shadow">
+        <div class="flex justify-between items-center pb-1 border-b border-bcs-border/60">
+          <span class="text-[11px] font-oswald uppercase text-zinc-300 font-bold flex items-center gap-1.5">
+            <i class="ph-bold ph-warehouse text-bcs-copper"></i>
+            Verkstadens Platser / Crew
+          </span>
+          <span class="text-[9px] font-mono text-bcs-gold font-bold">5 Medlemmar</span>
+        </div>
+
+        <div id="crewMembersList" class="grid grid-cols-2 gap-1 mt-1.5 font-mono text-[10px]">
+          <!-- Fylls dynamiskt med loggor & status via JS -->
+        </div>
+      </div>
+
+      <!-- 3. ATT FIXA / KÖPA -->
+      <div class="bg-bcs-black/95 p-2.5 rounded-lg border border-bcs-border flex-1 flex flex-col justify-between min-h-[160px] landscape:min-h-0 lg:min-h-0">
+        <div class="flex justify-between items-center pb-1.5 border-b border-bcs-border/60 flex-shrink-0">
+          <span class="text-xs font-oswald uppercase text-zinc-300 font-bold flex items-center gap-1.5">
+            <i class="ph-bold ph-clipboard-text text-bcs-copper"></i>
+            Att Fixa / Köpa
+          </span>
+          <span id="dash-todos-badge" class="text-[9px] font-mono text-bcs-gold font-bold">Live</span>
+        </div>
+
+        <div id="dash-todos-container" class="flex-1 flex flex-col gap-1.5 py-1.5 overflow-y-auto pr-0.5 min-h-0 font-mono text-xs">
+          <div class="text-center text-zinc-500 font-mono text-[10px] py-2">Laddar lista...</div>
+        </div>
+
+        <div class="pt-1 border-t border-bcs-border/60 flex items-center justify-between text-[9px] font-mono text-zinc-500 flex-shrink-0">
+          <span>Synkat med appen</span>
+          <span class="text-bcs-copper">Burn Creek Depå</span>
+        </div>
+      </div>
+
+    </section>
 
   </main>
 
+  <!-- ========================================================== -->
+  <!-- 3. FOOTER (KOMPAKT STATUSLIST & TICKER)                    -->
+  <!-- ========================================================== -->
+  <footer class="dash-footer w-full h-8 flex-shrink-0 bg-bcs-black border border-bcs-border rounded-lg px-3 flex items-center justify-between overflow-hidden shadow-inner font-mono text-xs text-bcs-creamMuted">
+    <div class="flex items-center gap-2 flex-shrink-0 pr-3 border-r border-bcs-border font-oswald uppercase tracking-wider text-bcs-gold font-bold">
+      <i class="ph-bold ph-wrench text-bcs-copper"></i>
+      <span>GARAGE FEED</span>
+    </div>
+    <div class="overflow-hidden whitespace-nowrap flex-1 px-3">
+      <div class="animate-marquee font-mono text-zinc-300">
+        BURN CREEK SPEEDSHOP • BRÄNNEHYLTE • HÄNG TILLBAKA VERKTYGEN PÅ PLATS • KOLLA OLJETRYCK OCH STIFT • STÄNG AV GASTUBER & SVETS EFTER ARBETSPASSET • TÖM KOMPRESSORN PÅ KONDENSVATTEN • ALLTID NYBRYGGT KAFFE I HÖRNET • KEEP RACING ALIVE •
+      </div>
+    </div>
+    <div class="hidden sm:block flex-shrink-0 pl-3 border-l border-bcs-border text-[10px] text-zinc-500">
+      42" WORKSHOP KIOSK
+    </div>
+  </footer>
+
+  <!-- ========================================================== -->
+  <!-- JAVASCRIPT-LOGIK                                           -->
+  <!-- ========================================================== -->
   <script>
-    const LAT = 57.1864;
-    const LON = 14.0403;
+    /* ==========================================================
+       0. SCREEN WAKE LOCK (HÅLLER ANDROID-SKÄRMEN VAKEN VID CAST)
+       ========================================================== */
+    let wakeLock = null;
+    async function requestWakeLock() {
+      try {
+        if ('wakeLock' in navigator) {
+          wakeLock = await navigator.wakeLock.request('screen');
+        }
+      } catch (err) {
+        console.warn('Wake Lock ej tillgängligt:', err.message);
+      }
+    }
+    requestWakeLock();
+    document.addEventListener('visibilitychange', () => {
+      if (wakeLock !== null && document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    });
 
-    let knownIds = new Set();
-    let pushEnabled = false;
-
-    const weatherCodes = {
-      0: "KLART", 1: "MESTADELS KLART", 2: "HALVKLART", 3: "MULET",
-      45: "DIMMA", 48: "RIMFROSTDIMMA", 51: "DUGGREGN", 53: "DUGGREGN",
-      55: "TÄTT DUGGREGN", 61: "LÄTT REGN", 63: "REGN", 65: "KRAFTIGT REGN",
-      71: "LÄTT SNÖ", 73: "SNÖFALL", 75: "YMNIGT SNÖFALL",
-      80: "SKURAR", 81: "REGNSKURAR", 82: "KRAFTIGA SKURAR", 95: "ÅSKA"
+    /* ==========================================================
+       1. FIREBASE SETUP & REALTIDSLYSSNARE
+       ========================================================== */
+    const firebaseConfig = {
+      apiKey: "AIzaSyAyn6xM-pkDVK7ojbQXCjfHO07P8rwevMQ",
+      authDomain: "burncreekspeedshop.firebaseapp.com",
+      projectId: "burncreekspeedshop",
+      storageBucket: "burncreekspeedshop.firebasestorage.app",
+      messagingSenderId: "611870239128",
+      appId: "1:611870239128:web:5e8973ec49556be0f823ed"
     };
 
-    function updateClock() {
-      const now = new Date();
-      document.getElementById('time').textContent = now.toLocaleTimeString('sv-SE', { hour12: false });
-      document.getElementById('date').textContent = now.toLocaleDateString('sv-SE', { weekday: 'short', day: 'numeric', month: 'short' }).toUpperCase();
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
     }
+    const db = firebase.firestore();
 
-    async function fetchWeather() {
-      try {
-        const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&current=temperature_2m,relative_humidity_2m,weather_code,wind_speed_10m&wind_speed_unit=ms`);
-        const data = await res.json();
-        const cur = data.current;
-
-        document.getElementById('temp').textContent = `${Math.round(cur.temperature_2m)}°C`;
-        document.getElementById('condition').textContent = weatherCodes[cur.weather_code] || "OKÄNT";
-        document.getElementById('wind').textContent = `${Math.round(cur.wind_speed_10m)} M/S`;
-        document.getElementById('humidity').textContent = `${cur.relative_humidity_2m} %`;
-      } catch (err) {
-        document.getElementById('condition').textContent = "OFFLINE // RETRY";
+    /* CREW-MEDLEMMAR MED LOGOTYPER/EMBLEM OCH PLATS */
+    const workshopSpots = [
+      { 
+        id: "p1", 
+        name: "Fredrik", 
+        spot: "Plats 1", 
+        badgeHtml: `<span class="px-1 py-0.2 rounded font-sans font-black text-[9px] tracking-tight bg-red-700 text-white border border-red-500 shadow-sm leading-tight">GMC</span>`
+      },
+      { 
+        id: "p2", 
+        name: "Tony", 
+        spot: "Plats 2", 
+        badgeHtml: `<span class="inline-flex items-center gap-0.5 px-1 py-0.5 rounded bg-zinc-900 border border-zinc-600 text-[8px] font-bold text-zinc-200" title="Buick Tri-Shield"><span class="w-1.5 h-2.5 rounded-sm bg-red-600 inline-block rotate-[-12deg]"></span><span class="w-1.5 h-2.5 rounded-sm bg-zinc-100 inline-block rotate-[-12deg]"></span><span class="w-1.5 h-2.5 rounded-sm bg-blue-600 inline-block rotate-[-12deg]"></span></span>`
+      },
+      { 
+        id: "p3", 
+        name: "Pierre", 
+        spot: "Plats 3", 
+        badgeHtml: `<span class="px-1 py-0.5 rounded bg-zinc-900 border border-amber-600 text-amber-400 flex items-center justify-center text-xs" title="Motorcykel"><i class="ph-bold ph-motorcycle"></i></span>`
+      },
+      { 
+        id: "p4_k", 
+        name: "Kenneth", 
+        spot: "Plats 4", 
+        badgeHtml: `<span class="px-1.5 py-0.2 rounded-full font-serif italic font-bold text-[8px] tracking-wide bg-blue-800 text-white border border-blue-400 shadow-sm leading-tight" title="Ford">Ford</span>`
+      },
+      { 
+        id: "p4_h", 
+        name: "Håkan", 
+        spot: "Plats 4", 
+        badgeHtml: `<span class="px-1.5 py-0.2 rounded-full font-serif italic font-bold text-[8px] tracking-wide bg-blue-800 text-white border border-blue-400 shadow-sm leading-tight" title="Ford">Ford</span>`
       }
-    }
+    ];
 
-    function requestNotificationAccess() {
-      if (!("Notification" in window)) {
-        alert("Webbläsaren saknar stöd för pushnotiser.");
-        return;
-      }
-      Notification.requestPermission().then(perm => {
-        if (perm === "granted") {
-          pushEnabled = true;
-          const btn = document.getElementById('btn-push');
-          btn.textContent = "[ PUSH AKTIV ]";
-          btn.classList.add('enabled');
-          new Notification("TERMINAL NOTIS", { 
-            body: "Pushnotiser aktiverade för Polis & Händelser."
-          });
-        }
+    function renderCrewList(activeNames = []) {
+      const container = document.getElementById('crewMembersList');
+      if (!container) return;
+      container.innerHTML = '';
+
+      workshopSpots.forEach(m => {
+        const isOnline = activeNames.some(name => {
+          const n = name.toLowerCase();
+          if (m.id === 'p1' && n.includes('fredrik')) return true;
+          if (m.id === 'p2' && n.includes('tony')) return true;
+          if (m.id === 'p3' && n.includes('pierre')) return true;
+          if (m.id === 'p4_k' && n.includes('kenneth')) return true;
+          if (m.id === 'p4_h' && (n.includes('håkan') || n.includes('hakan'))) return true;
+          return false;
+        });
+
+        const card = document.createElement('div');
+        card.className = `p-1 rounded border flex items-center justify-between gap-1 ${
+          isOnline 
+            ? 'bg-bcs-copper/20 border-bcs-copper text-bcs-cream' 
+            : 'bg-bcs-charcoal/80 border-bcs-border text-zinc-400'
+        }`;
+        card.innerHTML = `
+          <div class="flex items-center gap-1.5 min-w-0 truncate">
+            <div class="flex-shrink-0 flex items-center justify-center">
+              ${m.badgeHtml}
+            </div>
+            <div class="truncate">
+              <span class="font-bold block leading-tight ${isOnline ? 'text-bcs-gold' : 'text-zinc-200'}">${m.name}</span>
+              <span class="text-[8px] text-zinc-500 block leading-none">${m.spot}</span>
+            </div>
+          </div>
+          <span class="w-2 h-2 rounded-full flex-shrink-0 ${isOnline ? 'bg-emerald-400 shadow-[0_0_6px_#2ecc71]' : 'bg-zinc-700'}"></span>
+        `;
+        container.appendChild(card);
       });
     }
 
-    function triggerPush(title, body, url) {
-      if (pushEnabled && Notification.permission === "granted") {
-        const notif = new Notification(title, {
-          body: body,
-          icon: "https://polisen.se/Static/images/police-badge.svg"
-        });
-        if (url) {
-          notif.onclick = () => { window.open(url, '_blank'); };
-        }
-      }
-    }
+    /* NÄRVAROLYSSNARE */
+    function initPresenceListener() {
+      const listEl = document.getElementById('dash-presence-list');
+      const ledEl = document.getElementById('dash-led');
 
-    /* 1. POLISEN I JÖNKÖPINGS LÄN */
-    async function fetchPolice() {
-      const container = document.getElementById('police-feed');
-      try {
-        const res = await fetch('https://polisen.se/api/events?locationname=J%C3%B6nk%C3%B6pings%20l%C3%A4n');
-        const events = await res.json();
+      db.collection('active_members').onSnapshot(snapshot => {
+        if (!listEl) return;
 
-        if (!events || events.length === 0) {
-          container.innerHTML = '<div style="font-size:0.75rem; color:var(--terminal-dim);">INGA LOGGADE HÄNDELSER.</div>';
+        const activeNames = [];
+
+        if (snapshot.empty) {
+          if (ledEl) ledEl.classList.remove('active');
+          listEl.innerHTML = '<span class="text-zinc-500 font-mono text-[10px]">Ingen i verkstan just nu</span>';
+          renderCrewList([]);
           return;
         }
 
-        events.forEach(ev => {
-          const id = 'pol_' + ev.id;
-          const url = `https://polisen.se${ev.url}`;
-          if (knownIds.size > 0 && !knownIds.has(id)) {
-            triggerPush(`POLIS // ${ev.type} (${ev.location.name})`, ev.summary, url);
+        if (ledEl) ledEl.classList.add('active');
+        listEl.innerHTML = '';
+
+        snapshot.forEach(doc => {
+          const data = doc.data();
+          const name = data.name || 'Medlem';
+          activeNames.push(name);
+          let timeStr = '';
+
+          if (data.checkedInAt && data.checkedInAt.toDate) {
+            const d = data.checkedInAt.toDate();
+            timeStr = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
           }
-          knownIds.add(id);
-        });
 
-        container.innerHTML = events.slice(0, 3).map(ev => `
-          <a href="https://polisen.se${ev.url}" target="_blank" rel="noopener noreferrer" class="feed-node">
-            <div class="feed-title">
-              <span>${ev.datetime.split(" ")[1]} // ${ev.type} (${ev.location.name})</span>
-              <span>[LÄNK]</span>
-            </div>
-            <div class="feed-msg">${ev.summary}</div>
-          </a>
-        `).join('');
-      } catch (e) {
-        container.innerHTML = '<div style="font-size:0.75rem; color:var(--terminal-dim);">POLISDATA: SYNKRONISERAR...</div>';
-      }
-    }
-
-    /* 2. LOKALA NYHETER */
-    async function fetchNews() {
-      const container = document.getElementById('news-feed');
-      try {
-        const feedUrl = encodeURIComponent('https://www.svt.se/nyheter/lokalt/jonkoping/rss.xml');
-        const res = await fetch(`https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}`);
-        const data = await res.json();
-
-        if (!data.items || data.items.length === 0) {
-          container.innerHTML = '<div style="font-size:0.75rem; color:var(--terminal-dim);">INGA NYHETER REGISTRERADE.</div>';
-          return;
-        }
-
-        data.items.slice(0, 3).forEach(item => {
-          const id = 'news_' + item.guid;
-          if (knownIds.size > 0 && !knownIds.has(id)) {
-            triggerPush(`LOKALNYHET // JÖNKÖPING`, item.title, item.link);
-          }
-          knownIds.add(id);
-        });
-
-        container.innerHTML = data.items.slice(0, 3).map(item => `
-          <a href="${item.link}" target="_blank" rel="noopener noreferrer" class="feed-node">
-            <div class="feed-title">
-              <span>${item.title}</span>
-              <span>[LÄNK]</span>
-            </div>
-            <div class="feed-msg">${item.description.replace(/<[^>]*>?/gm, '').slice(0, 105) + '...'}</div>
-          </a>
-        `).join('');
-      } catch (e) {
-        container.innerHTML = '<div style="font-size:0.75rem; color:var(--terminal-dim);">NYHETSFEED: SYNKRONISERAR...</div>';
-      }
-    }
-
-    /* 3. TRAFIKVERKET */
-    async function fetchTraffic() {
-      const container = document.getElementById('traffic-feed');
-      const counter = document.getElementById('traffic-counter');
-      const xmlPayload = `
-        <REQUEST>
-          <LOGIN authenticationkey="5d4f134267254589a1fbbd09793108c9" />
-          <QUERY objecttype="Situation" schemaversion="1.5" limit="6">
-            <FILTER><EQ name="Deviation.CountyNo" value="6" /></FILTER>
-            <INCLUDE>Deviation.Header</INCLUDE>
-            <INCLUDE>Deviation.Message</INCLUDE>
-            <INCLUDE>Deviation.RoadNumber</INCLUDE>
-          </QUERY>
-        </REQUEST>`;
-
-      try {
-        const res = await fetch('https://api.trafikinfo.trafikverket.se/v2/data.json', {
-          method: 'POST',
-          headers: { 'Content-Type': 'text/xml' },
-          body: xmlPayload
-        });
-        const json = await res.json();
-        const situations = json.RESPONSE?.RESULT?.[0]?.Situation || [];
-
-        const deviations = [];
-        situations.forEach(s => {
-          if (Array.isArray(s.Deviation)) deviations.push(...s.Deviation);
-          else if (s.Deviation) deviations.push(s.Deviation);
-        });
-
-        counter.textContent = `${deviations.length} HÄNDELSER`;
-
-        if (deviations.length === 0) {
-          container.innerHTML = '<div style="font-size:0.75rem; color:var(--terminal-dim); padding:0.2rem 0;">NORMAL FRAMKOMLIGHET I REGIONEN.</div>';
-          return;
-        }
-
-        container.innerHTML = deviations.slice(0, 3).map(d => `
-          <div class="feed-node">
-            <div class="feed-title">${d.RoadNumber ? 'VÄG ' + d.RoadNumber + ' // ' : ''}${d.Header || 'AVVIKELSE'}</div>
-            <div class="feed-msg">${d.Message || 'Ingen ytterligare rapport tillgänglig.'}</div>
-          </div>
-        `).join('');
-      } catch (e) {
-        container.innerHTML = '<div style="font-size:0.75rem; color:var(--terminal-alert);">KOMMUNIKATIONSFEL MOT TRAFIKVERKET.</div>';
-      }
-    }
-
-    /* VMA */
-    async function fetchVMA() {
-      const panel = document.getElementById('vma-panel');
-      const tag = document.getElementById('vma-tag');
-      const content = document.getElementById('vma-content');
-
-      try {
-        const res = await fetch('https://api.krisinformation.se/v3/vmas');
-        if (!res.ok) throw new Error('Status ' + res.status);
-        const list = await res.json();
-
-        const vmaMatch = list.find(item => {
-          const raw = ((item.PushMessage || "") + " " + (item.BodyText || "") + " " + (item.Headline || "")).toLowerCase();
-          return raw.includes('jönköping') || raw.includes('värnamo');
-        });
-
-        if (vmaMatch) {
-          panel.classList.add('active');
-          tag.textContent = '! LARM AKTIVT !';
-          content.innerHTML = `
-            <strong style="color:var(--terminal-alert); display:block; margin-bottom:4px;">${vmaMatch.Headline || 'VIKTIGT MEDDELANDE TILL ALLMÄNHETEN'}</strong>
-            <span>${vmaMatch.PushMessage || vmaMatch.BodyText}</span>
+          const badge = document.createElement('div');
+          badge.className = 'presence-badge';
+          badge.innerHTML = `
+            <span>${name}</span>
+            ${timeStr ? `<span class="presence-time">${timeStr}</span>` : ''}
           `;
-          triggerPush(`🚨 VMA UTFÄRDAT`, vmaMatch.Headline || vmaMatch.PushMessage, 'https://krisinformation.se');
+          listEl.appendChild(badge);
+        });
+
+        renderCrewList(activeNames);
+      }, err => {
+        console.warn("Firestore presence error:", err);
+        if (listEl) listEl.innerHTML = '<span class="text-zinc-500 font-mono text-[10px]">Kunde inte ansluta till servern</span>';
+        renderCrewList([]);
+      });
+    }
+
+    /* ANSLAGSLYSSNARE (MEDDELANDE FRÅN DEPÅN) */
+    function initAnnouncementListener() {
+      db.collection('announcements').doc('current').onSnapshot(doc => {
+        const card = document.getElementById('dash-announcement-card');
+        const textEl = document.getElementById('dash-announcement-text');
+        const authorEl = document.getElementById('dash-announcement-author');
+        const timeEl = document.getElementById('dash-announcement-time');
+
+        if (doc.exists && doc.data().text) {
+          const data = doc.data();
+          const timeStr = data.updatedAt 
+            ? new Date(data.updatedAt.toDate()).toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }) 
+            : '';
+
+          textEl.innerText = data.text;
+          authorEl.innerText = `Skickat av: ${data.author || 'Depå'}`;
+          timeEl.innerText = timeStr ? `kl ${timeStr}` : '';
+          card.style.display = 'block';
         } else {
-          panel.classList.remove('active');
-          tag.textContent = 'STANDBY // NORMAL';
-          content.innerHTML = 'INGA AKTIVA VMA FÖR REGIONEN.';
+          card.style.display = 'none';
+        }
+      }, err => {
+        console.error('Fel vid hämtning av anslag:', err);
+      });
+    }
+
+    /* ATT FIXA / KÖPA - REALTIDSLYSSNARE */
+    function initTodosListener() {
+      const container = document.getElementById('dash-todos-container');
+      const badge = document.getElementById('dash-todos-badge');
+
+      db.collection('todos').onSnapshot(snapshot => {
+        if (!container) return;
+
+        if (snapshot.empty) {
+          container.innerHTML = '<p class="text-zinc-500 font-mono text-[10px] text-center py-4">Inga punkter på listan.</p>';
+          if (badge) badge.textContent = '0 st';
+          return;
+        }
+
+        const list = [];
+        snapshot.forEach(doc => list.push({ id: doc.id, ...doc.data() }));
+        list.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+
+        const pendingCount = list.filter(t => !t.done).length;
+        if (badge) badge.textContent = `${pendingCount} kvar`;
+
+        container.innerHTML = '';
+        list.forEach(t => {
+          const card = document.createElement('div');
+          card.className = `p-1.5 rounded border transition-colors flex items-center justify-between gap-1.5 ${
+            t.done 
+              ? 'bg-bcs-black/60 border-bcs-border/40 opacity-50' 
+              : 'bg-bcs-charcoal/90 border-bcs-border shadow-sm'
+          }`;
+
+          card.innerHTML = `
+            <div class="flex items-center gap-2 min-w-0 flex-1">
+              <span class="text-xs ${t.done ? 'text-zinc-600' : 'text-bcs-copper'} flex-shrink-0">
+                <i class="ph-bold ${t.done ? 'ph-check-circle' : 'ph-circle'}"></i>
+              </span>
+              <span class="font-mono text-[11px] truncate leading-tight ${t.done ? 'line-through text-zinc-500' : 'text-zinc-200 font-bold'}">
+                ${t.text}
+              </span>
+            </div>
+            <span class="text-[9px] font-mono px-1.5 py-0.5 rounded flex-shrink-0 ${
+              t.done 
+                ? 'bg-zinc-900 text-zinc-600 border border-zinc-800' 
+                : 'bg-bcs-black text-bcs-gold border border-bcs-border'
+            }">
+              ${t.addedBy || 'Depå'}
+            </span>
+          `;
+          container.appendChild(card);
+        });
+      }, err => {
+        console.warn("Firestore todos error:", err);
+        if (container) container.innerHTML = '<p class="text-zinc-500 font-mono text-[10px] text-center py-4">Kunde inte hämta listan.</p>';
+      });
+    }
+
+    /* KALENDER - REALTIDSLYSSNARE */
+    function initCalendarListener() {
+      const container = document.getElementById('dash-calendar-container');
+      const badge = document.getElementById('dash-calendar-badge');
+      if (!container) return;
+
+      const parseEventDate = (raw) => {
+        if (!raw) return null;
+        if (raw.toDate) return raw.toDate();
+        const d = new Date(raw);
+        return isNaN(d.getTime()) ? null : d;
+      };
+
+      const renderCalendarEvents = (docs) => {
+        const todayStart = new Date();
+        todayStart.setHours(0, 0, 0, 0);
+
+        const upcoming = docs
+          .map(d => {
+            const parsedDate = parseEventDate(d.date || d.startDate || d.start || d.eventDate);
+            return { ...d, parsedDate };
+          })
+          .filter(d => d.parsedDate && d.parsedDate >= todayStart)
+          .sort((a, b) => a.parsedDate - b.parsedDate);
+
+        if (badge) {
+          badge.textContent = upcoming.length > 0 ? `${upcoming.length} kommande` : 'Inga bokade';
+        }
+
+        if (upcoming.length === 0) {
+          container.innerHTML = `
+            <div class="col-span-1 sm:col-span-3 text-center text-zinc-500 font-mono text-[10px] py-2.5 bg-bcs-charcoal/40 rounded border border-dashed border-bcs-border/60">
+              Inga kommande händelser inlagda i kalendern just nu.
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = '';
+        upcoming.slice(0, 3).forEach(ev => {
+          const dayNum = ev.parsedDate.getDate();
+          const monthStr = ev.parsedDate.toLocaleDateString('sv-SE', { month: 'short' }).replace('.', '').toUpperCase();
+          const isToday = ev.parsedDate.toDateString() === new Date().toDateString();
+          const title = ev.title || ev.name || ev.text || 'Händelse';
+          const who = ev.author || ev.member || ev.user || ev.type || '';
+          const timePart = ev.time || (ev.date && String(ev.date).includes('T')
+            ? ev.parsedDate.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+            : '');
+
+          const card = document.createElement('div');
+          card.className = `p-1.5 rounded border flex items-center gap-2 min-w-0 ${
+            isToday
+              ? 'bg-bcs-copper/20 border-bcs-copper shadow-sm'
+              : 'bg-bcs-charcoal/90 border-bcs-border'
+          }`;
+
+          card.innerHTML = `
+            <div class="flex-shrink-0 w-9 h-9 rounded bg-bcs-black border ${isToday ? 'border-bcs-gold' : 'border-bcs-border'} flex flex-col items-center justify-center leading-none">
+              <span class="font-mono text-xs font-extrabold ${isToday ? 'text-bcs-gold' : 'text-bcs-cream'}">${dayNum}</span>
+              <span class="font-oswald text-[8px] tracking-wider text-bcs-copper font-bold mt-0.5">${monthStr}</span>
+            </div>
+            <div class="min-w-0 flex-1">
+              <div class="font-oswald text-[11px] font-bold text-bcs-cream truncate leading-tight" title="${title}">
+                ${title}
+              </div>
+              <div class="font-mono text-[9px] text-zinc-400 truncate mt-0.5">
+                ${isToday ? '<span class="text-bcs-gold font-bold">IDAG</span>' : ''}
+                ${timePart ? `<span>${isToday ? ' • ' : ''}${timePart}</span>` : ''}
+                ${who ? `<span>${(isToday || timePart) ? ' • ' : ''}${who}</span>` : (!isToday && !timePart ? 'Depå / Verkstad' : '')}
+              </div>
+            </div>
+          `;
+          container.appendChild(card);
+        });
+      };
+
+      let fallbackUnsub = null;
+      db.collection('events').onSnapshot(snapshot => {
+        if (!snapshot.empty) {
+          if (fallbackUnsub) { fallbackUnsub(); fallbackUnsub = null; }
+          const items = [];
+          snapshot.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+          renderCalendarEvents(items);
+        } else if (!fallbackUnsub) {
+          fallbackUnsub = db.collection('calendar').onSnapshot(calSnap => {
+            const items = [];
+            calSnap.forEach(doc => items.push({ id: doc.id, ...doc.data() }));
+            renderCalendarEvents(items);
+          }, () => renderCalendarEvents([]));
+        }
+      }, err => {
+        console.warn("Firestore calendar error:", err);
+        container.innerHTML = '<div class="col-span-1 sm:col-span-3 text-center text-zinc-500 font-mono text-[10px] py-2">Kunde inte hämta kalendern.</div>';
+      });
+    }
+
+    renderCrewList([]);
+    initPresenceListener();
+    initAnnouncementListener();
+    initTodosListener();
+    initCalendarListener();
+
+    /* 2. KLOCKA & DATUM */
+    function updateClock() {
+      const now = new Date();
+      const h = String(now.getHours()).padStart(2, '0');
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const s = String(now.getSeconds()).padStart(2, '0');
+      document.getElementById('liveClock').textContent = `${h}:${m}:${s}`;
+
+      const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+      let str = now.toLocaleDateString('sv-SE', options);
+      str = str.charAt(0).toUpperCase() + str.slice(1);
+      document.getElementById('liveDate').textContent = str;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    /* 3. VÄDER & LUFTTRYCK */
+    async function fetchWeather() {
+      const lat = 57.316;
+      const lon = 13.783;
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,relative_humidity_2m,surface_pressure,wind_speed_10m,weather_code&hourly=temperature_2m&wind_speed_unit=ms&timezone=Europe%2FBerlin`;
+
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error('Väder-fel');
+        const data = await res.json();
+        const cur = data.current;
+
+        document.getElementById('weatherTemp').textContent = Math.round(cur.temperature_2m);
+        document.getElementById('weatherPressure').textContent = `${Math.round(cur.surface_pressure)} hPa`;
+        document.getElementById('weatherHumidity').textContent = `${cur.relative_humidity_2m} %`;
+        document.getElementById('weatherWind').textContent = `${cur.wind_speed_10m.toFixed(1)} m/s`;
+
+        const code = cur.weather_code;
+        let desc = 'Klart väder';
+        let iconHtml = '<i class="ph-fill ph-sun text-bcs-gold"></i>';
+
+        if ([1, 2, 3].includes(code)) {
+          desc = 'Växlande molnighet';
+          iconHtml = '<i class="ph-fill ph-cloud-sun text-bcs-gold"></i>';
+        } else if ([45, 48].includes(code)) {
+          desc = 'Dimma i Småland';
+          iconHtml = '<i class="ph-fill ph-cloud-fog text-zinc-400"></i>';
+        } else if ([51, 53, 55, 61, 63, 65].includes(code)) {
+          desc = 'Regn / Våt bana';
+          iconHtml = '<i class="ph-fill ph-cloud-rain text-sky-400"></i>';
+        } else if ([71, 73, 75].includes(code)) {
+          desc = 'Snö';
+          iconHtml = '<i class="ph-fill ph-snowflake text-sky-200"></i>';
+        }
+
+        document.getElementById('weatherDesc').textContent = desc;
+        document.getElementById('weatherIcon').innerHTML = iconHtml;
+
+        const press = cur.surface_pressure;
+        const advice = document.getElementById('carbAdvice');
+        if (press >= 1020) {
+          advice.textContent = `Högtryck (${Math.round(press)} hPa). Hög syredensitet – bestycka 1-2 jet sizes fetare för max effekt.`;
+        } else if (press <= 995) {
+          advice.textContent = `Lågtryck (${Math.round(press)} hPa). Lägre syredensitet – går något fett vid WOT.`;
+        } else {
+          advice.textContent = `Optimalt tryck (${Math.round(press)} hPa). Idealiska grundförhållanden för förgasare & tändning.`;
+        }
+      } catch (e) {
+        console.warn("Weather error:", e);
+      }
+    }
+    fetchWeather();
+    setInterval(fetchWeather, 15 * 60 * 1000);
+
+    /* 4. MOTORSPORT RSS (BILSPORT/SVT + DRAG ILLUSTRATED + MOTORSPORT.COM) */
+    let allNewsArticles = [];
+    let newsPage = 0;
+
+    async function fetchSingleRSS(url, sourceName, defaultCategory) {
+      try {
+        const feedUrl = encodeURIComponent(url);
+        const proxyUrl = `https://api.rss2json.com/v1/api.json?rss_url=${feedUrl}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) return [];
+        const data = await res.json();
+        if (data.status === 'ok' && Array.isArray(data.items) && data.items.length > 0) {
+          return data.items.map(item => ({
+            ...item,
+            source: sourceName,
+            categoryBadge: defaultCategory || sourceName
+          }));
+        }
+      } catch (e) {
+        console.warn(`Fel vid hämtning av ${sourceName}:`, e);
+      }
+      return [];
+    }
+
+    async function fetchMotorsportRSS() {
+      const lastUpdateEl = document.getElementById('rssLastUpdated');
+      
+      try {
+        const [bilsportItems, svtItems, dragItems, motorsportItems] = await Promise.all([
+          fetchSingleRSS("https://www.bilsport.se/feed/", "Bilsport", "Sverige"),
+          fetchSingleRSS("https://www.svt.se/sport/motorsport/rss.xml", "SVT Motorsport", "Sverige"),
+          fetchSingleRSS("https://dragillustrated.com/feed/", "Drag Illustrated", "Drag"),
+          fetchSingleRSS("https://www.motorsport.com/rss/all/news/", "Motorsport.com", "Racing")
+        ]);
+
+        const swedishItems = bilsportItems.length > 0 ? bilsportItems : svtItems;
+
+        const combined = [];
+        const maxLen = Math.max(swedishItems.length, dragItems.length, motorsportItems.length);
+        for (let i = 0; i < maxLen; i++) {
+          if (swedishItems[i]) combined.push(swedishItems[i]);
+          if (dragItems[i]) combined.push(dragItems[i]);
+          if (motorsportItems[i]) combined.push(motorsportItems[i]);
+        }
+
+        if (combined.length > 0) {
+          allNewsArticles = combined;
+          const timeNow = new Date();
+          if (lastUpdateEl) {
+            lastUpdateEl.textContent = `Live ${String(timeNow.getHours()).padStart(2,'0')}:${String(timeNow.getMinutes()).padStart(2,'0')}`;
+          }
+          renderNewsBatch();
+          return;
         }
       } catch (err) {
-        panel.classList.remove('active');
-        tag.textContent = 'STANDBY';
-        content.innerHTML = 'INGA LARM REGISTRERADE.';
+        console.warn("RSS fel:", err);
+      }
+
+      if (allNewsArticles.length === 0) {
+        allNewsArticles = [
+          { title: "Bilsport: Dragracing & Street Week laddar för fullt inför säsongen", source: "Bilsport", categoryBadge: "Sverige", pubDate: new Date().toISOString(), description: "Byggena i garagen runt om i Sverige finjusteras inför årets snabbaste träffar." },
+          { title: "Drag Illustrated: Pro Mod & Radial vs the World med extrema dörrbilar", source: "Drag Illustrated", categoryBadge: "Pro Mod", pubDate: new Date().toISOString(), description: "Dubbelturbo, lustgas och skruvkompressorer gör upp om hundradelarna." },
+          { title: "NHRA Top Fuel: Nya rekordtider och nitrometan på strippen", source: "Motorsport.com", categoryBadge: "Top Fuel", pubDate: new Date().toISOString(), description: "Över 11 000 hästkrafter kämpar i elimineringen under helgens körningar." }
+        ];
+        renderNewsBatch();
       }
     }
 
-    function refreshMaps() {
-      const radar = document.getElementById('radar-frame');
-      const lightning = document.getElementById('lightning-frame');
-      if (radar) radar.src = radar.src;
-      if (lightning) lightning.src = lightning.src;
+    function renderNewsBatch() {
+      const container = document.getElementById('rssFeedContainer');
+      if (!container || !allNewsArticles || allNewsArticles.length === 0) return;
+
+      const pageSize = 3;
+      const startIndex = (newsPage * pageSize) % allNewsArticles.length;
+      const items = allNewsArticles.slice(startIndex, startIndex + pageSize);
+
+      while (items.length < 3 && allNewsArticles.length > items.length) {
+        items.push(allNewsArticles[items.length]);
+      }
+
+      container.innerHTML = '';
+      items.forEach(item => {
+        let imageUrl = item.thumbnail || (item.enclosure && item.enclosure.link ? item.enclosure.link : null);
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = item.description || '';
+        const cleanDesc = tempDiv.textContent || tempDiv.innerText || '';
+        const snippet = cleanDesc.length > 70 ? cleanDesc.slice(0, 70) + '...' : cleanDesc;
+        
+        let colorClass = 'text-bcs-gold';
+        let iconClass = 'ph-flag-checkered';
+
+        if (item.source === 'Bilsport' || item.source === 'SVT Motorsport') {
+          colorClass = 'text-amber-400';
+          iconClass = 'ph-wrench';
+        } else if (item.source === 'Drag Illustrated') {
+          colorClass = 'text-bcs-copper';
+          iconClass = 'ph-flame';
+        }
+
+        const card = document.createElement('div');
+        card.className = "flex-1 min-h-0 p-1.5 rounded bg-bcs-black/85 border border-bcs-border flex gap-2 items-center overflow-hidden transition-all duration-300";
+        card.innerHTML = `
+          ${imageUrl ? `
+            <div class="w-12 h-11 flex-shrink-0 rounded bg-bcs-charcoal overflow-hidden border border-bcs-border">
+              <img src="${imageUrl}" alt="" class="w-full h-full object-cover" onerror="this.parentElement.style.display='none'">
+            </div>
+          ` : `
+            <div class="w-8 h-8 flex-shrink-0 rounded bg-bcs-charcoal border border-bcs-border flex items-center justify-center ${colorClass}">
+              <i class="ph-bold ${iconClass} text-base"></i>
+            </div>
+          `}
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between text-[8px] font-mono leading-none mb-0.5">
+              <span class="font-bold uppercase truncate max-w-[150px] ${colorClass}">
+                [${item.source}] ${item.categoryBadge ? '• ' + item.categoryBadge : ''}
+              </span>
+              <span class="text-zinc-500">Live</span>
+            </div>
+            <h4 class="font-oswald text-[11px] font-bold text-bcs-cream truncate leading-tight">
+              ${item.title}
+            </h4>
+            <p class="font-mono text-[9px] text-zinc-400 line-clamp-1 leading-tight">
+              ${snippet}
+            </p>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+
+      newsPage++;
     }
 
-    // Intervaller
-    setInterval(updateClock, 1000);
-    setInterval(fetchWeather, 10 * 60 * 1000);
-    setInterval(fetchPolice, 2 * 60 * 1000);
-    setInterval(fetchNews, 4 * 60 * 1000);
-    setInterval(fetchTraffic, 2 * 60 * 1000);
-    setInterval(fetchVMA, 1 * 60 * 1000);
-    setInterval(refreshMaps, 10 * 60 * 1000);
+    fetchMotorsportRSS();
+    setInterval(renderNewsBatch, 12000);
+    setInterval(fetchMotorsportRSS, 5 * 60 * 1000);
 
-    // Init
-    updateClock();
-    fetchWeather();
-    fetchPolice();
-    fetchNews();
-    fetchTraffic();
-    fetchVMA();
+    /* 5. DRAGSTRIP LIVE TV STREAM CONTROLLER */
+    function switchStream(source) {
+      const frame = document.getElementById('dragTvFrame');
+      if (!frame) return;
 
-    if ("Notification" in window && Notification.permission === "granted") {
-      pushEnabled = true;
-      const btn = document.getElementById('btn-push');
-      btn.textContent = "[ PUSH AKTIV ]";
-      btn.classList.add('enabled');
+      let embedUrl = "";
+      source = (source || '').trim();
+
+      if (source.startsWith('playlist:')) {
+        const listId = source.replace('playlist:', '');
+        embedUrl = `https://www.youtube.com/embed?listType=playlist&list=${listId}&autoplay=1&mute=1&loop=1`;
+      } else if (source.includes('youtube.com') || source.includes('youtu.be')) {
+        try {
+          const urlObj = new URL(source);
+          let videoId = "";
+          if (urlObj.hostname.includes('youtu.be')) {
+            videoId = urlObj.pathname.slice(1);
+          } else if (urlObj.searchParams.has('v')) {
+            videoId = urlObj.searchParams.get('v');
+          } else if (urlObj.pathname.includes('/live/')) {
+            videoId = urlObj.pathname.split('/live/')[1];
+          } else if (urlObj.pathname.includes('/embed/')) {
+            videoId = urlObj.pathname.split('/embed/')[1];
+          }
+          if (videoId) {
+            embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&mute=1&controls=1&loop=1&playlist=${videoId}&modestbranding=1&rel=0`;
+          } else {
+            embedUrl = source;
+          }
+        } catch (e) {
+          embedUrl = source;
+        }
+      } else {
+        embedUrl = `https://www.youtube.com/embed/${source}?autoplay=1&mute=1&controls=1&loop=1&playlist=${source}&modestbranding=1&rel=0`;
+      }
+
+      frame.src = embedUrl;
     }
+
+    document.getElementById('customStreamBtn').addEventListener('click', () => {
+      const customUrl = window.prompt("Klistra in YouTube-länk till Live Drag Racing eller tävling:\n(T.ex: https://www.youtube.com/watch?v=... eller /live/...)");
+      if (customUrl && customUrl.trim()) {
+        switchStream(customUrl.trim());
+      }
+    });
+
+    /* 6. FULLSKÄRM & UPPDATERING */
+    document.getElementById('fullscreenBtn').addEventListener('click', () => {
+      if (!document.fullscreenElement) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      } else {
+        if (document.exitFullscreen) document.exitFullscreen();
+      }
+    });
+
+    document.getElementById('refreshBtn').addEventListener('click', () => {
+      fetchWeather();
+      fetchMotorsportRSS();
+      updateClock();
+      requestWakeLock();
+    });
   </script>
 </body>
 </html>
