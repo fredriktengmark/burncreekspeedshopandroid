@@ -6,7 +6,7 @@
   "start_url": "/burncreekspeedshopandroid/index.html",
   "scope": "/burncreekspeedshopandroid/",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "portrait",
   "background_color": "#0a0a0a",
   "theme_color": "#0a0a0a",
   "icons": [
