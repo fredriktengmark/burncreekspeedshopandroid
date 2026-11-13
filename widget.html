@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Burn Creek Widget</title>
+  <meta name="theme-color" content="#0d0c0b">
+  <link rel="icon" href="./logo.png">
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=JetBrains+Mono:wght@400;600;700&family=Rye&display=swap" rel="stylesheet">
+
+  <!-- Phosphor Icons -->
+  <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+  <!-- Firebase SDKs (Compat v9) -->
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            bcs: {
+              copper: '#b25329',
+              cream: '#f4ecd8',
+              creamMuted: '#d3c5a6',
+              black: '#121110',
+              charcoal: '#1c1a18',
+              border: '#38322b',
+              gold: '#df9837'
+            }
+          },
+          fontFamily: {
+            brand: ['Rye', 'Oswald', 'serif'],
+            oswald: ['Oswald', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #0d0c0b;
+      background-image: 
+        radial-gradient(circle at 50% 0%, rgba(178, 83, 41, 0.2), transparent 65%),
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='36' height='36' viewBox='0 0 36 36'%3E%3Cdefs%3E%3Cg id='lug'%3E%3Cellipse cx='0' cy='0.8' rx='5.2' ry='1.9' fill='%23040404'/%3E%3Cellipse cx='0' cy='-0.3' rx='5' ry='1.7' fill='%232e2c2a'/%3E%3Cellipse cx='0' cy='0' rx='4.6' ry='1.4' fill='%231d1b1a'/%3E%3C/g%3E%3C/defs%3E%3Cuse href='%23lug' transform='translate(9 9) rotate(-45)'/%3E%3Cuse href='%23lug' transform='translate(27 9) rotate(45)'/%3E%3Cuse href='%23lug' transform='translate(9 27) rotate(45)'/%3E%3Cuse href='%23lug' transform='translate(27 27) rotate(-45)'/%3E%3C/svg%3E");
+      color: #f4ecd8;
+      margin: 0;
+      padding: 6px;
+      user-select: none;
+      overflow-x: hidden;
+    }
+
+    .checkered-strip {
+      background-image: 
+        linear-gradient(45deg, #121110 25%, transparent 25%), 
+        linear-gradient(-45deg, #121110 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #121110 75%), 
+        linear-gradient(-45deg, transparent 75%, #121110 75%);
+      background-size: 10px 10px;
+      background-position: 0 0, 0 5px, 5px -5px, -5px 0px;
+      background-color: #f4ecd8;
+    }
+
+    .led {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: #3f3933;
+      border: 1px solid #25211d;
+      flex-shrink: 0;
+    }
+    .led.active {
+      background: #2ecc71;
+      box-shadow: 0 0 8px #2ecc71;
+    }
+  </style>
+</head>
+<body class="font-oswald flex flex-col gap-1.5 min-h-screen">
+
+  <!-- TOPP: LOGGA + KLOCKA + LÄNK TILL HELA DASHBOARDEN -->
+  <header class="bg-bcs-charcoal border border-bcs-border rounded-lg px-2.5 py-1.5 relative overflow-hidden flex items-center justify-between shadow-md">
+    <div class="checkered-strip h-1.5 w-full absolute top-0 left-0 opacity-80"></div>
+    
+    <a href="./index.html" class="flex items-center gap-2 mt-1 min-w-0">
+      <img src="./logo.png" alt="Logo" class="w-8 h-8 rounded-full border border-bcs-copper bg-bcs-black object-contain flex-shrink-0">
+      <div class="truncate">
+        <div class="font-brand text-xs text-bcs-cream uppercase leading-none tracking-wide truncate">
+          Burn Creek <span class="text-bcs-copper">HQ</span>
+        </div>
+        <div id="widgetTime" class="font-mono text-[9px] text-bcs-gold leading-tight mt-0.5">
+          Uppdaterar...
+        </div>
+      </div>
+    </a>
+
+    <div class="flex items-center gap-1 mt-1">
+      <button onclick="window.location.reload()" class="p-1.5 rounded bg-bcs-black border border-bcs-border text-bcs-cream active:scale-95" title="Uppdatera">
+        <i class="ph-bold ph-arrows-clockwise text-xs"></i>
+      </button>
+      <a href="./index.html" class="px-2 py-1 rounded bg-bcs-copper text-white font-oswald text-[10px] uppercase font-bold tracking-wider flex items-center gap-1 shadow active:scale-95">
+        <span>TV</span>
+        <i class="ph-bold ph-arrow-square-out text-xs"></i>
+      </a>
+    </div>
+  </header>
+
+  <!-- ANSLAG / MEDDELANDE FRÅN DEPÅN (Döljs om tomt) -->
+  <div id="widgetAnnouncement" class="hidden bg-gradient-to-b from-[#24140d] to-[#150d08] border border-bcs-copper rounded-lg px-2.5 py-1.5 shadow">
+    <div class="flex items-center justify-between text-[9px] font-mono text-bcs-gold border-b border-bcs-copper/30 pb-0.5 mb-1">
+      <span class="font-bold uppercase flex items-center gap-1">
+        <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+        Depå-meddelande
+      </span>
+      <span id="annAuthor"></span>
+    </div>
+    <div id="annText" class="font-oswald text-xs font-bold text-bcs-cream leading-snug"></div>
+  </div>
+
+  <!-- 1. NÄRVARO I VERKSTAN -->
+  <section class="bg-bcs-charcoal border border-bcs-border border-t-2 border-t-bcs-copper rounded-lg p-2 shadow">
+    <div class="flex items-center justify-between border-b border-dashed border-bcs-border pb-1 mb-1.5">
+      <div class="flex items-center gap-1.5">
+        <div id="presenceLed" class="led"></div>
+        <span class="text-xs font-bold uppercase tracking-wider text-bcs-cream">Närvaro i Verkstan</span>
+      </div>
+      <span id="presenceCount" class="font-mono text-[10px] text-bcs-gold font-bold">0 på plats</span>
+    </div>
+    <div id="presenceList" class="flex flex-wrap gap-1 font-mono text-[11px] min-h-[22px] items-center">
+      <span class="text-zinc-500 text-[10px]">Läser in...</span>
+    </div>
+  </section>
+
+  <!-- 2. ATT FIXA / KÖPA & NÄSTA HÄNDELSE (2 KOLUMNER) -->
+  <div class="grid grid-cols-2 gap-1.5 flex-1">
+    
+    <!-- Vänster: Att fixa / köpa -->
+    <section class="bg-bcs-charcoal border border-bcs-border rounded-lg p-2 flex flex-col justify-between shadow">
+      <div>
+        <div class="flex items-center justify-between border-b border-bcs-border pb-1 mb-1">
+          <span class="text-[11px] font-bold uppercase text-bcs-cream flex items-center gap-1">
+            <i class="ph-bold ph-clipboard-text text-bcs-copper"></i>
+            Att Fixa
+          </span>
+          <span id="todoCountBadge" class="font-mono text-[9px] bg-bcs-black px-1.5 py-0.2 rounded text-bcs-gold border border-bcs-border">0</span>
+        </div>
+        <div id="todoList" class="flex flex-col gap-1 font-mono text-[10px]">
+          <span class="text-zinc-500 text-[9px]">Laddar...</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Höger: Nästa i kalendern -->
+    <section class="bg-bcs-charcoal border border-bcs-border rounded-lg p-2 flex flex-col justify-between shadow">
+      <div>
+        <div class="flex items-center justify-between border-b border-bcs-border pb-1 mb-1">
+          <span class="text-[11px] font-bold uppercase text-bcs-cream flex items-center gap-1">
+            <i class="ph-bold ph-calendar-check text-bcs-copper"></i>
+            Kalender
+          </span>
+          <span class="font-mono text-[9px] text-zinc-500">Nästa</span>
+        </div>
+        <div id="nextEventBox" class="font-mono text-[10px]">
+          <span class="text-zinc-500 text-[9px]">Laddar...</span>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAyn6xM-pkDVK7ojbQXCjfHO07P8rwevMQ",
+      authDomain: "burncreekspeedshop.firebaseapp.com",
+      projectId: "burncreekspeedshop",
+      storageBucket: "burncreekspeedshop.firebasestorage.app",
+      messagingSenderId: "611870239128",
+      appId: "1:611870239128:web:5e8973ec49556be0f823ed"
+    };
+
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    function updateTimestamp() {
+      const now = new Date();
+      const t = now.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
+      document.getElementById('widgetTime').textContent = `Live • kl ${t}`;
+    }
+    updateTimestamp();
+    setInterval(updateTimestamp, 30000);
+
+    // 1. Närvaro
+    db.collection('active_members').onSnapshot(snap => {
+      const led = document.getElementById('presenceLed');
+      const countEl = document.getElementById('presenceCount');
+      const listEl = document.getElementById('presenceList');
+
+      if (snap.empty) {
+        led.classList.remove('active');
+        countEl.textContent = 'Tomt';
+        listEl.innerHTML = '<span class="text-zinc-500 text-[10px]">Ingen i verkstan just nu</span>';
+        return;
+      }
+
+      led.classList.add('active');
+      countEl.textContent = `${snap.size} i verkstan`;
+      listEl.innerHTML = '';
+
+      snap.forEach(doc => {
+        const d = doc.data();
+        const timeStr = d.checkedInAt?.toDate
+          ? d.checkedInAt.toDate().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' })
+          : '';
+        const badge = document.createElement('span');
+        badge.className = 'inline-flex items-center gap-1 bg-bcs-black border border-bcs-copper px-1.5 py-0.5 rounded text-[10px] font-bold text-bcs-cream';
+        badge.innerHTML = `${d.name || 'Medlem'} ${timeStr ? `<span class="text-[8px] text-bcs-gold font-normal">${timeStr}</span>` : ''}`;
+        listEl.appendChild(badge);
+      });
+    });
+
+    // 2. Anslag
+    db.collection('announcements').doc('current').onSnapshot(doc => {
+      const box = document.getElementById('widgetAnnouncement');
+      if (doc.exists && doc.data().text) {
+        const d = doc.data();
+        document.getElementById('annText').textContent = d.text;
+        document.getElementById('annAuthor').textContent = d.author || 'Depå';
+        box.classList.remove('hidden');
+      } else {
+        box.classList.add('hidden');
+      }
+    });
+
+    // 3. Att fixa / köpa (visar 3 senaste oklara)
+    db.collection('todos').onSnapshot(snap => {
+      const listEl = document.getElementById('todoList');
+      const badgeEl = document.getElementById('todoCountBadge');
+
+      const pending = [];
+      snap.forEach(doc => {
+        const d = doc.data();
+        if (!d.done) pending.push(d);
+      });
+      pending.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+
+      badgeEl.textContent = `${pending.length} kvar`;
+
+      if (pending.length === 0) {
+        listEl.innerHTML = '<span class="text-zinc-500 text-[9px]">Allt klart!</span>';
+        return;
+      }
+
+      listEl.innerHTML = '';
+      pending.slice(0, 3).forEach(t => {
+        const row = document.createElement('div');
+        row.className = 'truncate text-[10px] text-bcs-cream bg-bcs-black/80 px-1.5 py-0.5 rounded border border-bcs-border';
+        row.innerHTML = `<span class="text-bcs-copper mr-1">•</span>${t.text}`;
+        listEl.appendChild(row);
+      });
+    });
+
+    // 4. Kalender (Nästa kommande händelse)
+    const parseDate = (raw) => {
+      if (!raw) return null;
+      if (raw.toDate) return raw.toDate();
+      const d = new Date(raw);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const renderEvents = (items) => {
+      const box = document.getElementById('nextEventBox');
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      const upcoming = items
+        .map(d => ({ ...d, parsedDate: parseDate(d.date || d.startDate || d.start || d.eventDate) }))
+        .filter(d => d.parsedDate && d.parsedDate >= today)
+        .sort((a, b) => a.parsedDate - b.parsedDate);
+
+      if (upcoming.length === 0) {
+        box.innerHTML = '<span class="text-zinc-500 text-[9px]">Inget bokat</span>';
+        return;
+      }
+
+      box.innerHTML = '';
+      upcoming.slice(0, 2).forEach(ev => {
+        const dateStr = ev.parsedDate.toLocaleDateString('sv-SE', { day: 'numeric', month: 'short' }).replace('.', '');
+        const title = ev.title || ev.name || ev.text || 'Händelse';
+        const div = document.createElement('div');
+        div.className = 'bg-bcs-black/80 px-1.5 py-0.5 rounded border border-bcs-border mb-1 truncate';
+        div.innerHTML = `<span class="text-bcs-gold font-bold mr-1">${dateStr}:</span><span class="text-bcs-cream">${title}</span>`;
+        box.appendChild(div);
+      });
+    };
+
+    db.collection('events').onSnapshot(snap => {
+      if (!snap.empty) {
+        const arr = [];
+        snap.forEach(doc => arr.push(doc.data()));
+        renderEvents(arr);
+      } else {
+        db.collection('calendar').onSnapshot(calSnap => {
+          const arr = [];
+          calSnap.forEach(doc => arr.push(doc.data()));
+          renderEvents(arr);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
